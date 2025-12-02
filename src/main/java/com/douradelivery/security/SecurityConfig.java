@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@Profile("!minimal")
 public class SecurityConfig {
     
     private final JwtAuthenticationFilter jwtAuthenticationFilter;

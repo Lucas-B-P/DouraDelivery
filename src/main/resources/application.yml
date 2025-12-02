@@ -1,6 +1,8 @@
 spring:
   application:
     name: doura-delivery
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:minimal}
   
   datasource:
     url: ${DATABASE_URL:jdbc:mysql://interchange.proxy.rlwy.net:26671/railway?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
