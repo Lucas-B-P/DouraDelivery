@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class WebSocketService {
-  static const String baseUrl = 'wss://seu-backend.up.railway.app';
+  static const String baseUrl = 'wss://douradelivery-production.up.railway.app';
   WebSocketChannel? _channel;
   final FlutterLocalNotificationsPlugin _notifications = 
       FlutterLocalNotificationsPlugin();

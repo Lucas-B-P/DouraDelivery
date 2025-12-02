@@ -123,12 +123,12 @@
     </dependencies>
     
     <build>
+        <finalName>app</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <finalName>logistics-routing-1.0.0</finalName>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://seu-backend.up.railway.app';
+  static const String baseUrl = 'https://douradelivery-production.up.railway.app';
   late Dio _dio;
   
   ApiService() {
