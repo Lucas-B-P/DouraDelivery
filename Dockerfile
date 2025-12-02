@@ -3,10 +3,13 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
+RUN find /app/target -name "*.jar" -type f
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/logistics-routing-*.jar app.jar
+RUN ls -la /app/
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 

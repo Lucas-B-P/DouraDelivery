@@ -1,0 +1,6 @@
+DATABASE_URL=jdbc:mysql://shinkansen.proxy.rlwy.net:21574/railway?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+DATABASE_USER=root
+DATABASE_PASSWORD=zRTsElBQMXxaLIWpufrQugRdrVZyrUgm
+JWT_SECRET=sua_chave_secreta_super_segura_aqui_minimo_32_caracteres
+PORT=8080
+

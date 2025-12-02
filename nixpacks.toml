@@ -2,8 +2,8 @@
 nixPkgs = ["maven", "jdk17"]
 
 [phases.install]
-cmds = ["mvn clean package -DskipTests"]
+cmds = ["mvn clean package -DskipTests", "ls -la target/"]
 
 [start]
-cmd = "java -jar target/logistics-routing-1.0.0.jar"
+cmd = "java -jar target/logistics-routing-1.0.0.jar || java -jar target/*.jar"
 
