@@ -44,6 +44,7 @@ public class Order {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private Priority priority = Priority.NORMAL;
     
     private LocalDateTime timeWindowStart;
@@ -52,6 +53,7 @@ public class Order {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private OrderStatus status = OrderStatus.NEW;
     
     @ManyToOne

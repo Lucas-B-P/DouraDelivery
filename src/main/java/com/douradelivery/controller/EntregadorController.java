@@ -5,6 +5,7 @@ import com.douradelivery.model.Driver;
 import com.douradelivery.model.Order;
 import com.douradelivery.model.Route;
 import com.douradelivery.model.Telemetry;
+import com.douradelivery.model.User;
 import com.douradelivery.repository.DriverRepository;
 import com.douradelivery.repository.OrderRepository;
 import com.douradelivery.repository.RouteRepository;

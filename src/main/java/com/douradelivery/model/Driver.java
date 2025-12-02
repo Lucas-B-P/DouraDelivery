@@ -36,6 +36,7 @@ public class Driver {
     private double capacityVolume;
     
     @Column(nullable = false)
+    @Builder.Default
     private boolean available = true;
     
     @Enumerated(EnumType.STRING)

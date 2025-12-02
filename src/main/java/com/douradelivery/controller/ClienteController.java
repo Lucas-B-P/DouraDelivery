@@ -8,6 +8,7 @@ import com.douradelivery.repository.UserRepository;
 import com.douradelivery.service.RoutingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -87,7 +88,7 @@ public class ClienteController {
                 .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
         
         if (!order.getClient().getId().equals(client.getId())) {
-            return ResponseEntity.forbidden().build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
         return ResponseEntity.ok(order);

@@ -36,6 +36,7 @@ public class Route {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private RouteStatus status = RouteStatus.PLANNED;
     
     private LocalDateTime startedAt;
