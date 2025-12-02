@@ -1,0 +1,9 @@
+[phases.setup]
+nixPkgs = ["maven", "jdk17"]
+
+[phases.install]
+cmds = ["mvn clean package -DskipTests"]
+
+[start]
+cmd = "java -jar target/logistics-routing-1.0.0.jar"
+
