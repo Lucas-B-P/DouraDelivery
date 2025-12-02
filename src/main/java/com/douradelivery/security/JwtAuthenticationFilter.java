@@ -25,12 +25,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
         
-        // Permitir requisições OPTIONS (preflight CORS) passarem sem autenticação
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        // Permitir requisições OPTIONS (preflight CORS) e endpoints públicos passarem sem autenticação
+        String requestPath = request.getRequestURI();
+        String method = request.getMethod();
+        
+        if ("OPTIONS".equalsIgnoreCase(method) || 
+            requestPath.startsWith("/api/auth/") || 
+            requestPath.startsWith("/actuator/") ||
+            requestPath.startsWith("/ws/")) {
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         final String authHeader = request.getHeader("Authorization");
         
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
