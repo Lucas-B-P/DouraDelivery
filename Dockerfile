@@ -12,6 +12,5 @@ COPY --from=build /app/target/app.jar app.jar
 RUN ls -la /app/
 EXPOSE 8080
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
-ENV PORT=8080
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --server.port=${PORT:-8080}"]
 
