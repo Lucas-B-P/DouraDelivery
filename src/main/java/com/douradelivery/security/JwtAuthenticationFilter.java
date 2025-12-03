@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,28 +18,19 @@ import java.util.Collections;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
-    private final JwtUtil jwtUtil;
-    
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
-    }
+    @Autowired
+    private JwtUtil jwtUtil;
     
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
         
-        // Permitir requisições OPTIONS (preflight CORS) e endpoints públicos passarem sem autenticação
-        String requestPath = request.getRequestURI();
-        String method = request.getMethod();
-        
-        if ("OPTIONS".equalsIgnoreCase(method) || 
-            requestPath.startsWith("/api/auth/") || 
-            requestPath.startsWith("/actuator/") ||
-            requestPath.startsWith("/ws/")) {
+        // Permitir requisições OPTIONS (preflight CORS) passarem sem autenticação
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
-
+        
         final String authHeader = request.getHeader("Authorization");
         
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
