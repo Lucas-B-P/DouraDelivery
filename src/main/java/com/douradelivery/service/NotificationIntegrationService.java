@@ -1,32 +1,29 @@
 package com.douradelivery.service;
 
-import com.douradelivery.model.Driver;
-import com.douradelivery.model.Order;
-import com.douradelivery.model.Route;
-import com.douradelivery.websocket.NotificationService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-/**
- * Serviço que integra notificações com o sistema de roteamento
- */
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
-@RequiredArgsConstructor
 public class NotificationIntegrationService {
     
-    private final NotificationService notificationService;
-    
-    public void notifyOrderAssigned(Driver driver, Order order) {
-        notificationService.notifyDriverNewOrder(driver, order);
-        notificationService.notifyClientOrderUpdate(order.getClient().getId(), order);
+    public void sendOrderNotification(Long driverId, Map<String, Object> orderData) {
+        // Mock notification
+        System.out.println("📱 Notificação enviada para entregador " + driverId + ": " + orderData);
     }
     
-    public void notifyRouteUpdated(Driver driver, Route route) {
-        notificationService.notifyDriverRouteUpdate(driver, route);
+    public void sendStatusUpdate(Long clientId, String status, Map<String, Object> data) {
+        // Mock status update
+        System.out.println("📲 Status enviado para cliente " + clientId + ": " + status + " - " + data);
     }
     
-    public void notifyClientOrderUpdate(Long clientId, Order order) {
-        notificationService.notifyClientOrderUpdate(clientId, order);
+    public Map<String, Object> getNotificationStatus(Long userId) {
+        // Mock notification status
+        Map<String, Object> status = new HashMap<>();
+        status.put("userId", userId);
+        status.put("connected", true);
+        status.put("lastSeen", System.currentTimeMillis());
+        return status;
     }
 }
-

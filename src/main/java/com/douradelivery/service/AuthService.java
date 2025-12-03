@@ -1,52 +1,32 @@
 package com.douradelivery.service;
 
-import com.douradelivery.dto.AuthRequest;
-import com.douradelivery.dto.AuthResponse;
-import com.douradelivery.model.User;
-import com.douradelivery.repository.UserRepository;
-import com.douradelivery.security.JwtUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
-@RequiredArgsConstructor
 public class AuthService {
     
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-    
-    public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Credenciais inválidas"));
-        
-        if (!user.isActive()) {
-            throw new RuntimeException("Usuário inativo");
-        }
-        
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Credenciais inválidas");
-        }
-        
-        String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getUserType().name());
-        
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .name(user.getName())
-                .userType(user.getUserType())
-                .userId(user.getId())
-                .build();
+    public Map<String, Object> login(String email, String password) {
+        // Mock login - sempre retorna sucesso para teste
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", "fake-jwt-token-for-testing-" + System.currentTimeMillis());
+        response.put("userType", "CLIENT");
+        response.put("userId", 1L);
+        response.put("name", "Usuário Teste");
+        response.put("email", email);
+        return response;
     }
     
-    public User register(User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email já cadastrado");
-        }
-        
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+    public Map<String, Object> register(String name, String email, String password, String userType) {
+        // Mock register - sempre retorna sucesso para teste
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Usuário registrado com sucesso!");
+        response.put("userId", 1L);
+        response.put("name", name);
+        response.put("email", email);
+        response.put("userType", userType);
+        return response;
     }
 }
-
