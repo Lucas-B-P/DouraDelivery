@@ -23,7 +23,7 @@ spring:
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
 server:
-  port: ${PORT:3000}
+  port: ${PORT:8080}
 
 # JWT Configuration
 jwt:
