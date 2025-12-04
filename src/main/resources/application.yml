@@ -16,22 +16,21 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: false
-
-server:
-  port: ${PORT:8080}
-  address: 0.0.0.0
-
-# Configurações de upload
-spring:
+  
   servlet:
     multipart:
       max-file-size: 5MB
       max-request-size: 5MB
       enabled: true
 
-app:
+server:
+  port: ${PORT:8080}
+  address: 0.0.0.0
+
+file:
   upload:
     dir: ${UPLOAD_DIR:uploads}
+    max-size: 10MB
 
 jwt:
   secret: ${JWT_SECRET:douraDeliverySecretKeyForJWTTokenGeneration2024SuperSecureKey32Chars}
