@@ -49,6 +49,36 @@ class AuthService {
     }
   }
   
+  Future<Map<String, dynamic>> register(Map<String, dynamic> registerData) async {
+    try {
+      print('🔗 Registrando usuário em: ${ApiService.baseUrl}/api/auth/register');
+      
+      final response = await _apiService.dio.post('/api/auth/register', data: registerData);
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Registro bem-sucedido!');
+        return response.data;
+      } else {
+        throw Exception('Erro ao registrar: Status ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      print('❌ Erro de registro:');
+      print('   Tipo: ${e.type}');
+      print('   Mensagem: ${e.message}');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Response: ${e.response?.data}');
+      
+      if (e.response != null && e.response!.data != null) {
+        return e.response!.data;
+      } else {
+        return {'success': false, 'message': 'Erro de conexão: ${e.message}'};
+      }
+    } catch (e) {
+      print('❌ Erro inesperado no registro: $e');
+      return {'success': false, 'message': 'Erro inesperado: $e'};
+    }
+  }
+  
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
