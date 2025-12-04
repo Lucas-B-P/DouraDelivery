@@ -8,16 +8,21 @@ public class TestController {
     
     @GetMapping("/")
     public String home() {
-        return "Backend funcionando! ✅";
+        return "🚀 DouraDelivery API ONLINE! ✅";
     }
     
     @GetMapping("/test")
     public String test() {
-        return "Teste OK! 🎉";
+        return "✅ Teste OK! Backend funcionando perfeitamente! 🎉";
     }
     
     @GetMapping("/status")
     public String status() {
-        return "Status: ONLINE";
+        return "Status: ONLINE - Railway Deploy Success! 🚀";
+    }
+    
+    @GetMapping("/health")
+    public String health() {
+        return "✅ HEALTHY - Spring Boot + MySQL + Railway";
     }
 }
