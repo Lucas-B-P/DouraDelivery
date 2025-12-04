@@ -16,15 +16,22 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: false
-  
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
+
+# Configurações de upload
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+      enabled: true
+
+app:
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
 
 jwt:
   secret: ${JWT_SECRET:douraDeliverySecretKeyForJWTTokenGeneration2024SuperSecureKey32Chars}

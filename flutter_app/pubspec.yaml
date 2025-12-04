@@ -30,6 +30,20 @@ dependencies:
   
   # Notifications
   flutter_local_notifications: ^16.2.0
+  
+  # Camera and File Handling
+  camera: ^0.10.5+5
+  image_picker: ^1.0.4
+  permission_handler: ^11.1.0
+  
+  # Document Validation
+  cpf_cnpj_validator: ^2.0.0
+  
+  # Date Picker
+  flutter_datetime_picker_plus: ^2.1.0
+  
+  # File Upload
+  http_parser: ^4.0.2
 
 dev_dependencies:
   flutter_test:

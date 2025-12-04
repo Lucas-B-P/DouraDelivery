@@ -64,11 +64,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
               SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/register'),
+                child: Text(
+                  'Não tem conta? Cadastre-se aqui',
+                  style: TextStyle(color: Colors.orange),
+                ),
+              ),
+              SizedBox(height: 16),
               Text(
-                'Usuários de teste:\n'
-                'Cliente: cliente@example.com\n'
-                'Entregador: entregador@example.com\n'
-                'Senha: senha123',
+                'Para testes, use qualquer email/senha',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
