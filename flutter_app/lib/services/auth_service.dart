@@ -52,12 +52,18 @@ class AuthService {
   Future<Map<String, dynamic>> register(Map<String, dynamic> registerData) async {
     try {
       print('🔗 Registrando usuário em: ${ApiService.baseUrl}/api/auth/register');
+      print('📤 Dados enviados: $registerData');
       
       final response = await _apiService.dio.post('/api/auth/register', data: registerData);
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ Registro bem-sucedido!');
-        return response.data;
+        print('📥 Resposta: ${response.data}');
+        
+        // Garantir que sempre retorne success: true para respostas bem-sucedidas
+        final data = Map<String, dynamic>.from(response.data);
+        data['success'] = true;
+        return data;
       } else {
         throw Exception('Erro ao registrar: Status ${response.statusCode}');
       }
@@ -68,8 +74,34 @@ class AuthService {
       print('   Status: ${e.response?.statusCode}');
       print('   Response: ${e.response?.data}');
       
-      if (e.response != null && e.response!.data != null) {
-        return e.response!.data;
+      // Tratar diferentes tipos de erro
+      if (e.response != null) {
+        final statusCode = e.response!.statusCode;
+        final responseData = e.response!.data;
+        
+        String errorMessage = 'Erro desconhecido';
+        
+        if (responseData is Map<String, dynamic> && responseData.containsKey('message')) {
+          errorMessage = responseData['message'];
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        } else {
+          switch (statusCode) {
+            case 400:
+              errorMessage = 'Dados inválidos. Verifique as informações fornecidas.';
+              break;
+            case 409:
+              errorMessage = 'Email ou CPF já cadastrado.';
+              break;
+            case 500:
+              errorMessage = 'Erro interno do servidor. Tente novamente.';
+              break;
+            default:
+              errorMessage = 'Erro no servidor (Status $statusCode)';
+          }
+        }
+        
+        return {'success': false, 'message': errorMessage};
       } else {
         return {'success': false, 'message': 'Erro de conexão: ${e.message}'};
       }

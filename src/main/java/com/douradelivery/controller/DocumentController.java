@@ -1,150 +1,186 @@
 package com.douradelivery.controller;
 
-import com.douradelivery.dto.DocumentUploadResponse;
-import com.douradelivery.model.User;
-import com.douradelivery.repository.UserRepository;
-import com.douradelivery.service.FileUploadService;
+import com.douradelivery.service.DocumentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/api")
+@CrossOrigin(origins = "*")
 public class DocumentController {
     
-    @Autowired
-    private FileUploadService fileUploadService;
+    private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
     
     @Autowired
-    private UserRepository userRepository;
+    private DocumentService documentService;
     
-    @PostMapping("/upload/{userId}/{documentType}")
-    public ResponseEntity<DocumentUploadResponse> uploadDocument(
-            @PathVariable Long userId,
-            @PathVariable String documentType,
-            @RequestParam("file") MultipartFile file) {
-        
-        // Validar tipo de documento
-        if (!isValidDocumentType(documentType)) {
-            DocumentUploadResponse response = new DocumentUploadResponse();
-            response.setSuccess(false);
-            response.setMessage("Tipo de documento inválido. Use: profile, cpf ou cnh");
-            return ResponseEntity.badRequest().body(response);
-        }
-        
-        // Verificar se usuário existe
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            DocumentUploadResponse response = new DocumentUploadResponse();
-            response.setSuccess(false);
-            response.setMessage("Usuário não encontrado");
-            return ResponseEntity.notFound().build();
-        }
-        
-        // Upload do arquivo
-        DocumentUploadResponse response = fileUploadService.uploadDocument(file, documentType, userId);
-        
-        if (response.isSuccess()) {
-            // Atualizar caminho do documento no usuário
-            User user = userOpt.get();
-            updateUserDocumentPath(user, documentType, response.getFilePath());
-            userRepository.save(user);
-            
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-    
-    @GetMapping("/download/{userId}/{documentType}/{fileName}")
-    public ResponseEntity<Resource> downloadFile(
-            @PathVariable Long userId,
-            @PathVariable String documentType,
-            @PathVariable String fileName) {
+    @PostMapping("/documents/upload")
+    public ResponseEntity<Map<String, Object>> uploadDocuments(
+            @RequestParam("userId") Long userId,
+            @RequestParam(value = "cpfDocument", required = false) MultipartFile cpfDocument,
+            @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto,
+            @RequestParam(value = "cnhDocument", required = false) MultipartFile cnhDocument,
+            @RequestParam(value = "vehicleDocument", required = false) MultipartFile vehicleDocument) {
         
         try {
-            Path filePath = Paths.get("uploads", "users", userId.toString(), documentType, fileName);
-            Resource resource = new UrlResource(filePath.toUri());
+            logger.info("Recebida solicitação de upload de documentos para usuário: {}", userId);
             
-            if (resource.exists() && resource.isReadable()) {
-                return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                        .body(resource);
-            } else {
-                return ResponseEntity.notFound().build();
+            // Validar parâmetros obrigatórios
+            if (userId == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "ID do usuário é obrigatório");
+                return ResponseEntity.badRequest().body(errorResponse);
             }
+            
+            // Validar se pelo menos um documento foi enviado
+            if ((cpfDocument == null || cpfDocument.isEmpty()) && 
+                (profilePhoto == null || profilePhoto.isEmpty()) &&
+                (cnhDocument == null || cnhDocument.isEmpty()) &&
+                (vehicleDocument == null || vehicleDocument.isEmpty())) {
+                
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Pelo menos um documento deve ser enviado");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            // Preparar mapa de arquivos
+            Map<String, MultipartFile> files = new HashMap<>();
+            if (cpfDocument != null && !cpfDocument.isEmpty()) {
+                files.put("cpfDocument", cpfDocument);
+            }
+            if (profilePhoto != null && !profilePhoto.isEmpty()) {
+                files.put("profilePhoto", profilePhoto);
+            }
+            if (cnhDocument != null && !cnhDocument.isEmpty()) {
+                files.put("cnhDocument", cnhDocument);
+            }
+            if (vehicleDocument != null && !vehicleDocument.isEmpty()) {
+                files.put("vehicleDocument", vehicleDocument);
+            }
+            
+            // Processar upload
+            Map<String, Object> result = documentService.uploadDocuments(userId, files);
+            
+            if ((Boolean) result.get("success")) {
+                logger.info("Upload de documentos concluído com sucesso para usuário: {}", userId);
+                return ResponseEntity.ok(result);
+            } else {
+                logger.warn("Falha no upload de documentos para usuário {}: {}", userId, result.get("message"));
+                return ResponseEntity.badRequest().body(result);
+            }
+            
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("Erro inesperado no upload de documentos para usuário {}: {}", userId, e.getMessage(), e);
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Erro interno do servidor");
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
     
-    @GetMapping("/status/{userId}")
+    @GetMapping("/documents/status/{userId}")
     public ResponseEntity<Map<String, Object>> getDocumentStatus(@PathVariable Long userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            logger.info("Buscando status dos documentos para usuário: {}", userId);
+            
+            Map<String, Object> result = documentService.getDocumentStatus(userId);
+            
+            if ((Boolean) result.get("success")) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.badRequest().body(result);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao buscar status dos documentos para usuário {}: {}", userId, e.getMessage(), e);
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Erro interno do servidor");
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
-        
-        User user = userOpt.get();
-        Map<String, Object> status = new HashMap<>();
-        
-        status.put("userId", userId);
-        status.put("verificationStatus", user.getVerificationStatus().name());
-        status.put("hasProfilePhoto", user.getProfilePhotoPath() != null);
-        status.put("hasCpfPhoto", user.getCpfPhotoPath() != null);
-        
-        // Para entregadores, verificar CNH
-        if (user.getUserType() == User.UserType.DRIVER) {
-            status.put("hasCnhPhoto", user.getCnhPhotoPath() != null);
-            status.put("cnhRequired", true);
-        } else {
-            status.put("hasCnhPhoto", false);
-            status.put("cnhRequired", false);
-        }
-        
-        // Calcular progresso
-        int totalRequired = user.getUserType() == User.UserType.DRIVER ? 3 : 2;
-        int completed = 0;
-        if (user.getProfilePhotoPath() != null) completed++;
-        if (user.getCpfPhotoPath() != null) completed++;
-        if (user.getUserType() == User.UserType.DRIVER && user.getCnhPhotoPath() != null) completed++;
-        
-        status.put("completionPercentage", (completed * 100) / totalRequired);
-        status.put("isComplete", completed == totalRequired);
-        
-        return ResponseEntity.ok(status);
     }
     
-    private boolean isValidDocumentType(String documentType) {
-        return "profile".equals(documentType) || 
-               "cpf".equals(documentType) || 
-               "cnh".equals(documentType);
+    @GetMapping("/admin/documents/pending")
+    public ResponseEntity<List<Map<String, Object>>> getPendingDocuments() {
+        try {
+            logger.info("Buscando documentos pendentes para análise");
+            
+            List<Map<String, Object>> result = documentService.getPendingDocuments();
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            logger.error("Erro ao buscar documentos pendentes: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(List.of());
+        }
     }
     
-    private void updateUserDocumentPath(User user, String documentType, String filePath) {
-        switch (documentType) {
-            case "profile":
-                user.setProfilePhotoPath(filePath);
-                break;
-            case "cpf":
-                user.setCpfPhotoPath(filePath);
-                break;
-            case "cnh":
-                user.setCnhPhotoPath(filePath);
-                break;
+    @PostMapping("/admin/documents/approve")
+    public ResponseEntity<Map<String, Object>> approveDocuments(
+            @RequestBody Map<String, Object> request) {
+        
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String observation = (String) request.get("observation");
+            Long reviewerId = 1L; // TODO: Pegar do JWT/sessão
+            
+            logger.info("Aprovando documentos do usuário {} por revisor {}", userId, reviewerId);
+            
+            Map<String, Object> result = documentService.approveDocuments(userId, observation, reviewerId);
+            
+            if ((Boolean) result.get("success")) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.badRequest().body(result);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao aprovar documentos: {}", e.getMessage(), e);
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Erro interno do servidor");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+    
+    @PostMapping("/admin/documents/reject")
+    public ResponseEntity<Map<String, Object>> rejectDocuments(
+            @RequestBody Map<String, Object> request) {
+        
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String observation = (String) request.get("observation");
+            Long reviewerId = 1L; // TODO: Pegar do JWT/sessão
+            
+            logger.info("Rejeitando documentos do usuário {} por revisor {}", userId, reviewerId);
+            
+            Map<String, Object> result = documentService.rejectDocuments(userId, observation, reviewerId);
+            
+            if ((Boolean) result.get("success")) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.badRequest().body(result);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao rejeitar documentos: {}", e.getMessage(), e);
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Erro interno do servidor");
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 }

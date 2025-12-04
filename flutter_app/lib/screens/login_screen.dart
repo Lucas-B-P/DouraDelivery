@@ -98,14 +98,13 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
-      final userType = provider.user?['userType'];
-      if (userType == 'CLIENTE') {
-        Navigator.pushReplacementNamed(context, '/cliente/orders');
-      } else if (userType == 'ENTREGADOR') {
-        Navigator.pushReplacementNamed(context, '/entregador/orders');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      // Navegar para o dashboard correto baseado no tipo de usuário
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => provider.getDashboardScreen(),
+        ),
+      );
     }
   }
 }

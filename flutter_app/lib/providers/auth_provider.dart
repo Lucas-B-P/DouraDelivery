@@ -1,5 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/dashboard/user_dashboard_screen.dart';
+import '../screens/admin/admin_dashboard_screen.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -55,6 +59,19 @@ class AuthProvider with ChangeNotifier {
   
   Future<bool> checkAuth() async {
     return await _authService.isLoggedIn();
+  }
+
+  Widget getDashboardScreen() {
+    if (_user == null) {
+      return const LoginScreen();
+    }
+    
+    final userType = _user!['userType'];
+    if (userType == 'ADMIN') {
+      return const AdminDashboardScreen();
+    } else {
+      return const UserDashboardScreen();
+    }
   }
 }
 

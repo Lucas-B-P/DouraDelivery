@@ -1,71 +1,192 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import 'api_service.dart';
 
 class DocumentService {
   final ApiService _apiService = ApiService();
 
-  Future<Map<String, dynamic>> uploadDocument(
-    int userId,
-    String documentType,
-    File file,
-  ) async {
+  Future<Map<String, dynamic>> uploadDocuments({
+    required int userId,
+    required File cpfDocument,
+    required File profilePhoto,
+    File? cnhDocument,
+    File? vehicleDocument,
+  }) async {
     try {
-      print('📤 Enviando documento: $documentType para usuário $userId');
-      
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('jwt_token');
-      
-      if (token == null) {
-        throw Exception('Token não encontrado. Faça login novamente.');
-      }
+      print('📤 Enviando documentos para usuário $userId');
 
-      // Criar FormData para upload
-      FormData formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          file.path,
-          filename: '${documentType}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      // Criar FormData para upload de arquivos
+      final formData = FormData.fromMap({
+        'userId': userId,
+        'cpfDocument': await MultipartFile.fromFile(
+          cpfDocument.path,
+          filename: 'cpf_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ),
+        'profilePhoto': await MultipartFile.fromFile(
+          profilePhoto.path,
+          filename: 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
+        if (cnhDocument != null)
+          'cnhDocument': await MultipartFile.fromFile(
+            cnhDocument.path,
+            filename: 'cnh_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ),
+        if (vehicleDocument != null)
+          'vehicleDocument': await MultipartFile.fromFile(
+            vehicleDocument.path,
+            filename: 'vehicle_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ),
       });
 
       final response = await _apiService.dio.post(
-        '/api/documents/upload/$userId/$documentType',
+        '/api/documents/upload',
         data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
       );
 
-      if (response.statusCode == 200) {
-        print('✅ Upload realizado com sucesso!');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Documentos enviados com sucesso!');
         return {
           'success': true,
-          'data': response.data,
+          'message': 'Documentos enviados com sucesso!',
+          ...response.data,
         };
       } else {
-        throw Exception('Erro no upload: ${response.statusCode}');
+        throw Exception('Erro ao enviar documentos: Status ${response.statusCode}');
       }
     } on DioException catch (e) {
-      print('❌ Erro no upload:');
-      print('   Tipo: ${e.type}');
-      print('   Mensagem: ${e.message}');
+      print('❌ Erro ao enviar documentos:');
+      print('   Status: ${e.response?.statusCode}');
       print('   Response: ${e.response?.data}');
-      
-      String errorMessage = 'Erro no upload do documento';
-      if (e.response?.data != null && e.response!.data['message'] != null) {
-        errorMessage = e.response!.data['message'];
+
+      if (e.response != null) {
+        final statusCode = e.response!.statusCode;
+        final responseData = e.response!.data;
+
+        String errorMessage = 'Erro desconhecido';
+
+        if (responseData is Map<String, dynamic> && responseData.containsKey('message')) {
+          errorMessage = responseData['message'];
+        } else {
+          switch (statusCode) {
+            case 400:
+              errorMessage = 'Dados inválidos. Verifique os documentos enviados.';
+              break;
+            case 413:
+              errorMessage = 'Arquivos muito grandes. Reduza o tamanho das imagens.';
+              break;
+            case 500:
+              errorMessage = 'Erro interno do servidor. Tente novamente.';
+              break;
+            default:
+              errorMessage = 'Erro no servidor (Status $statusCode)';
+          }
+        }
+
+        return {'success': false, 'message': errorMessage};
+      } else {
+        return {'success': false, 'message': 'Erro de conexão: ${e.message}'};
       }
-      
+    } catch (e) {
+      print('❌ Erro inesperado: $e');
+      return {'success': false, 'message': 'Erro inesperado: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getDocumentStatus(int userId) async {
+    try {
+      print('📥 Buscando status dos documentos para usuário $userId');
+
+      final response = await _apiService.dio.get('/api/documents/status/$userId');
+
+      if (response.statusCode == 200) {
+        print('✅ Status dos documentos obtido com sucesso!');
+        return {
+          'success': true,
+          ...response.data,
+        };
+      } else {
+        throw Exception('Erro ao buscar status: Status ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      print('❌ Erro ao buscar status dos documentos:');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Response: ${e.response?.data}');
+
       return {
         'success': false,
-        'message': errorMessage,
+        'message': 'Erro ao buscar status dos documentos',
+        'status': 'PENDING',
       };
     } catch (e) {
-      print('❌ Erro inesperado no upload: $e');
+      print('❌ Erro inesperado: $e');
+      return {
+        'success': false,
+        'message': 'Erro inesperado: $e',
+        'status': 'PENDING',
+      };
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingDocuments() async {
+    try {
+      print('📥 Buscando documentos pendentes para análise');
+
+      final response = await _apiService.dio.get('/api/admin/documents/pending');
+
+      if (response.statusCode == 200) {
+        print('✅ Documentos pendentes obtidos com sucesso!');
+        return List<Map<String, dynamic>>.from(response.data);
+      } else {
+        throw Exception('Erro ao buscar documentos: Status ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      print('❌ Erro ao buscar documentos pendentes:');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Response: ${e.response?.data}');
+      return [];
+    } catch (e) {
+      print('❌ Erro inesperado: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> approveDocument({
+    required int userId,
+    required String observation,
+  }) async {
+    try {
+      print('✅ Aprovando documentos do usuário $userId');
+
+      final response = await _apiService.dio.post(
+        '/api/admin/documents/approve',
+        data: {
+          'userId': userId,
+          'status': 'APPROVED',
+          'observation': observation,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Documentos aprovados com sucesso!');
+        return {
+          'success': true,
+          'message': 'Documentos aprovados com sucesso!',
+          ...response.data,
+        };
+      } else {
+        throw Exception('Erro ao aprovar documentos: Status ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      print('❌ Erro ao aprovar documentos:');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Response: ${e.response?.data}');
+
+      return {
+        'success': false,
+        'message': 'Erro ao aprovar documentos',
+      };
+    } catch (e) {
+      print('❌ Erro inesperado: $e');
       return {
         'success': false,
         'message': 'Erro inesperado: $e',
@@ -73,106 +194,43 @@ class DocumentService {
     }
   }
 
-  Future<Map<String, dynamic>> getDocumentStatus(int userId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('jwt_token');
-      
-      if (token == null) {
-        throw Exception('Token não encontrado. Faça login novamente.');
-      }
-
-      final response = await _apiService.dio.get(
-        '/api/documents/status/$userId',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': response.data,
-        };
-      } else {
-        throw Exception('Erro ao buscar status: ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      print('❌ Erro ao buscar status dos documentos: ${e.message}');
-      return {
-        'success': false,
-        'message': 'Erro ao buscar status dos documentos',
-      };
-    }
-  }
-
-  Future<Map<String, dynamic>> register({
-    required String name,
-    required String email,
-    required String password,
-    required String userType,
-    required String cpf,
-    required DateTime birthDate,
-    required String phone,
-    String? cnhNumber,
-    String? cnhCategory,
-    DateTime? cnhExpiryDate,
+  Future<Map<String, dynamic>> rejectDocument({
+    required int userId,
+    required String observation,
   }) async {
     try {
-      print('📝 Registrando usuário: $email');
-      
-      Map<String, dynamic> requestData = {
-        'name': name,
-        'email': email,
-        'password': password,
-        'userType': userType,
-        'cpf': cpf,
-        'birthDate': birthDate.toIso8601String().split('T')[0], // YYYY-MM-DD
-        'phone': phone,
-      };
-
-      // Campos específicos para entregadores
-      if (userType.toUpperCase() == 'DRIVER') {
-        requestData.addAll({
-          'cnhNumber': cnhNumber,
-          'cnhCategory': cnhCategory,
-          'cnhExpiryDate': cnhExpiryDate?.toIso8601String().split('T')[0],
-        });
-      }
+      print('❌ Rejeitando documentos do usuário $userId');
 
       final response = await _apiService.dio.post(
-        '/api/auth/register',
-        data: requestData,
+        '/api/admin/documents/reject',
+        data: {
+          'userId': userId,
+          'status': 'REJECTED',
+          'observation': observation,
+        },
       );
 
-      if (response.statusCode == 200) {
-        print('✅ Registro realizado com sucesso!');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Documentos rejeitados com sucesso!');
         return {
           'success': true,
-          'data': response.data,
+          'message': 'Documentos rejeitados com sucesso!',
+          ...response.data,
         };
       } else {
-        throw Exception('Erro no registro: ${response.statusCode}');
+        throw Exception('Erro ao rejeitar documentos: Status ${response.statusCode}');
       }
     } on DioException catch (e) {
-      print('❌ Erro no registro:');
-      print('   Tipo: ${e.type}');
-      print('   Mensagem: ${e.message}');
+      print('❌ Erro ao rejeitar documentos:');
+      print('   Status: ${e.response?.statusCode}');
       print('   Response: ${e.response?.data}');
-      
-      String errorMessage = 'Erro no registro';
-      if (e.response?.data != null && e.response!.data['message'] != null) {
-        errorMessage = e.response!.data['message'];
-      }
-      
+
       return {
         'success': false,
-        'message': errorMessage,
+        'message': 'Erro ao rejeitar documentos',
       };
     } catch (e) {
-      print('❌ Erro inesperado no registro: $e');
+      print('❌ Erro inesperado: $e');
       return {
         'success': false,
         'message': 'Erro inesperado: $e',

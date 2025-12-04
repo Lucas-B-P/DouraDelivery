@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../documents/document_upload_screen.dart';
 
 class SimpleRegisterScreen extends StatefulWidget {
   const SimpleRegisterScreen({Key? key}) : super(key: key);
@@ -135,13 +136,26 @@ class _SimpleRegisterScreenState extends State<SimpleRegisterScreen> {
                 decoration: const InputDecoration(
                   labelText: 'CPF *',
                   border: OutlineInputBorder(),
-                  hintText: '11144477735',
+                  hintText: '11144477735 (CPF válido)',
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null || value.length < 11) {
+                  if (value == null || value.isEmpty) {
+                    return 'CPF é obrigatório';
+                  }
+                  
+                  // Remove caracteres não numéricos
+                  final cpf = value.replaceAll(RegExp(r'[^\d]'), '');
+                  
+                  if (cpf.length != 11) {
                     return 'CPF deve ter 11 dígitos';
                   }
+                  
+                  // Validação básica de CPF
+                  if (!_isValidCPF(cpf)) {
+                    return 'CPF inválido';
+                  }
+                  
                   return null;
                 },
               ),
@@ -271,7 +285,22 @@ class _SimpleRegisterScreenState extends State<SimpleRegisterScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context);
+      
+      // Navegar para tela de documentos após registro
+      final userId = response['user']?['id'];
+      if (userId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DocumentUploadScreen(
+              userType: _userType,
+              userId: userId,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pop(context);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -290,5 +319,36 @@ class _SimpleRegisterScreenState extends State<SimpleRegisterScreen> {
     _cpfController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  bool _isValidCPF(String cpf) {
+    // Remove caracteres não numéricos
+    cpf = cpf.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Verifica se tem 11 dígitos
+    if (cpf.length != 11) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
+    
+    // Validação do primeiro dígito verificador
+    int sum = 0;
+    for (int i = 0; i < 9; i++) {
+      sum += int.parse(cpf[i]) * (10 - i);
+    }
+    int firstDigit = (sum * 10) % 11;
+    if (firstDigit == 10) firstDigit = 0;
+    
+    if (firstDigit != int.parse(cpf[9])) return false;
+    
+    // Validação do segundo dígito verificador
+    sum = 0;
+    for (int i = 0; i < 10; i++) {
+      sum += int.parse(cpf[i]) * (11 - i);
+    }
+    int secondDigit = (sum * 10) % 11;
+    if (secondDigit == 10) secondDigit = 0;
+    
+    return secondDigit == int.parse(cpf[10]);
   }
 }
