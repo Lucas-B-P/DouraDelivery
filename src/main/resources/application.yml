@@ -3,9 +3,9 @@ spring:
     name: doura-delivery
   
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:railway}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: ${MYSQLUSER:root}
-    password: ${MYSQLPASSWORD:password}
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:railway}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   jpa:
@@ -26,17 +26,14 @@ server:
   port: ${PORT:8080}
   address: 0.0.0.0
 
-# JWT Configuration
 jwt:
   secret: ${JWT_SECRET:douraDeliverySecretKeyForJWTTokenGeneration2024SuperSecureKey32Chars}
-  expiration: 86400000 # 24 horas em milissegundos
+  expiration: 86400000
 
-# OSRM Configuration (opcional)
 osrm:
   base-url: http://localhost:5000
   enabled: false
 
-# Actuator
 management:
   endpoints:
     web:
@@ -51,4 +48,3 @@ logging:
     com.douradelivery: DEBUG
     org.springframework.web: INFO
     org.hibernate: INFO
-
