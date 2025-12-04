@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/auth/register_screen.dart';
+import 'screens/auth/simple_register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/cliente/create_order_screen.dart';
 import 'screens/cliente/cliente_orders_screen.dart';
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         home: AuthCheck(),
         routes: {
           '/login': (context) => LoginScreen(),
-          '/register': (context) => RegisterScreen(),
+          '/register': (context) => SimpleRegisterScreen(),
           '/home': (context) => HomeScreen(),
           '/cliente/create-order': (context) => CreateOrderScreen(),
           '/cliente/orders': (context) => ClienteOrdersScreen(),

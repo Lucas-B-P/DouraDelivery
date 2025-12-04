@@ -29,7 +29,7 @@ public class User {
     private String password;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private UserType userType;
     
     // Campos para registro completo
@@ -46,7 +46,7 @@ public class User {
     private String cnhNumber;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "cnh_category")
+    @Column(name = "cnh_category", length = 10)
     private CnhCategory cnhCategory;
     
     @Column(name = "cnh_expiry_date")
