@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/document_service.dart';
+import '../../widgets/notification_widget.dart';
 import '../documents/document_upload_screen.dart';
-import '../auth/login_screen.dart';
+import '../login_screen.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({Key? key}) : super(key: key);
@@ -25,7 +26,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
   Future<void> _loadDocumentStatus() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = await authProvider._authService.getUserId();
+    final userId = await authProvider.authService.getUserId();
     
     if (userId != null) {
       final status = await _documentService.getDocumentStatus(userId);
@@ -49,6 +50,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         actions: [
+          const NotificationWidget(),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'logout') {
@@ -429,7 +431,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   Future<void> _goToDocumentUpload() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userType = authProvider.user?['userType'] ?? 'CLIENT';
-    final userId = await authProvider._authService.getUserId();
+    final userId = await authProvider.authService.getUserId();
 
     if (userId != null) {
       Navigator.push(

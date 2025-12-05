@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../screens/auth/login_screen.dart';
+import '../screens/login_screen.dart';
 import '../screens/dashboard/user_dashboard_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 
@@ -15,6 +15,9 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
+  
+  // Getter público para acessar o AuthService
+  AuthService get authService => _authService;
   
   Future<void> login(String email, String password) async {
     _isLoading = true;
@@ -68,9 +71,9 @@ class AuthProvider with ChangeNotifier {
     
     final userType = _user!['userType'];
     if (userType == 'ADMIN') {
-      return const AdminDashboardScreen();
+      return AdminDashboardScreen();
     } else {
-      return const UserDashboardScreen();
+      return UserDashboardScreen();
     }
   }
 }

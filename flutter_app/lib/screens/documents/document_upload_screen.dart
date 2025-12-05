@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../providers/auth_provider.dart';
 import '../../services/document_service.dart';
 import '../dashboard/user_dashboard_screen.dart';
@@ -87,7 +89,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
             // CPF/RG
             _buildDocumentCard(
               title: 'CPF ou RG',
-              description: 'Foto clara do documento de identidade',
+              description: kIsWeb ? 'Selecione uma imagem do documento' : 'Foto clara do documento de identidade',
               file: _cpfDocument,
               onTap: () => _pickDocument('cpf'),
               icon: Icons.credit_card,
@@ -97,7 +99,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
             // Foto do perfil
             _buildDocumentCard(
               title: 'Foto do Perfil',
-              description: 'Selfie clara para identificação',
+              description: kIsWeb ? 'Selecione uma foto sua' : 'Selfie clara para identificação',
               file: _profilePhoto,
               onTap: () => _pickDocument('profile'),
               icon: Icons.person,
@@ -296,7 +298,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                 ),
               ),
               Icon(
-                hasFile ? Icons.edit : Icons.camera_alt,
+                hasFile ? Icons.edit : (kIsWeb ? Icons.upload_file : Icons.camera_alt),
                 color: Colors.orange,
               ),
             ],
@@ -308,59 +310,82 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _pickDocument(String type) async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      );
+      XFile? image;
+      
+      if (kIsWeb) {
+        // No web, usar gallery ao invés de camera
+        image = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 80,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        );
+      } else {
+        // No mobile, usar camera
+        image = await _picker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 80,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        );
+      }
 
       if (image != null) {
-        setState(() {
-          switch (type) {
-            case 'cpf':
-              _cpfDocument = File(image.path);
-              break;
-            case 'profile':
-              _profilePhoto = File(image.path);
-              break;
-            case 'cnh':
-              _cnhDocument = File(image.path);
-              break;
-            case 'vehicle':
-              _vehicleDocument = File(image.path);
-              break;
-          }
-          _uploadError = null;
-        });
+        if (mounted) {
+          setState(() {
+            switch (type) {
+              case 'cpf':
+                _cpfDocument = File(image!.path);
+                break;
+              case 'profile':
+                _profilePhoto = File(image!.path);
+                break;
+              case 'cnh':
+                _cnhDocument = File(image!.path);
+                break;
+              case 'vehicle':
+                _vehicleDocument = File(image!.path);
+                break;
+            }
+            _uploadError = null;
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _uploadError = 'Erro ao capturar imagem: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _uploadError = 'Erro ao selecionar imagem: $e';
+        });
+      }
     }
   }
 
   Future<void> _uploadDocuments() async {
     // Validar documentos obrigatórios
     if (_cpfDocument == null || _profilePhoto == null) {
-      setState(() {
-        _uploadError = 'CPF/RG e foto do perfil são obrigatórios';
-      });
+      if (mounted) {
+        setState(() {
+          _uploadError = 'CPF/RG e foto do perfil são obrigatórios';
+        });
+      }
       return;
     }
 
     if (widget.userType == 'DRIVER' && (_cnhDocument == null || _vehicleDocument == null)) {
-      setState(() {
-        _uploadError = 'CNH e documento do veículo são obrigatórios para entregadores';
-      });
+      if (mounted) {
+        setState(() {
+          _uploadError = 'CNH e documento do veículo são obrigatórios para entregadores';
+        });
+      }
       return;
     }
 
-    setState(() {
-      _isUploading = true;
-      _uploadError = null;
-    });
+    if (mounted) {
+      setState(() {
+        _isUploading = true;
+        _uploadError = null;
+      });
+    }
 
     try {
       final response = await _documentService.uploadDocuments(
@@ -373,26 +398,34 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
       if (response['success']) {
         // Mostrar sucesso e navegar para dashboard
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Documentos enviados com sucesso! Aguarde a análise.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _navigateToDashboard();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Documentos enviados com sucesso! Aguarde a análise.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _navigateToDashboard();
+        }
       } else {
-        setState(() {
-          _uploadError = response['message'] ?? 'Erro ao enviar documentos';
-        });
+        if (mounted) {
+          setState(() {
+            _uploadError = response['message'] ?? 'Erro ao enviar documentos';
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _uploadError = 'Erro ao enviar documentos: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _uploadError = 'Erro ao enviar documentos: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isUploading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 

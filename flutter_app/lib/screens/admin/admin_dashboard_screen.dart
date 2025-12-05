@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/document_service.dart';
-import '../auth/login_screen.dart';
+import '../../widgets/notification_widget.dart';
+import '../login_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -21,15 +22,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _loadPendingDocuments() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
-    final documents = await _documentService.getPendingDocuments();
-    setState(() {
-      _pendingDocuments = documents;
-      _isLoading = false;
-    });
+    try {
+      final documents = await _documentService.getPendingDocuments();
+      if (!mounted) return;
+      setState(() {
+        _pendingDocuments = documents;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar documentos: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -41,6 +58,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         actions: [
+          const NotificationWidget(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadPendingDocuments,
@@ -388,23 +406,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _approveDocument(int userId, String observation) async {
-    final response = await _documentService.approveDocument(
-      userId: userId,
-      observation: observation.isEmpty ? 'Documentos aprovados com sucesso!' : observation,
-    );
-
-    if (response['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Documentos aprovados com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
+    try {
+      final response = await _documentService.approveDocument(
+        userId: userId,
+        observation: observation.isEmpty ? 'Documentos aprovados com sucesso!' : observation,
       );
-      _loadPendingDocuments(); // Recarregar lista
-    } else {
+
+      if (!mounted) return;
+
+      if (response['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Documentos aprovados com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadPendingDocuments(); // Recarregar lista
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erro ao aprovar: ${response['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao aprovar: ${response['message']}'),
+          content: Text('❌ Erro inesperado: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -412,23 +442,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _rejectDocument(int userId, String observation) async {
-    final response = await _documentService.rejectDocument(
-      userId: userId,
-      observation: observation,
-    );
-
-    if (response['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Documentos rejeitados. Usuário foi notificado.'),
-          backgroundColor: Colors.orange,
-        ),
+    try {
+      final response = await _documentService.rejectDocument(
+        userId: userId,
+        observation: observation,
       );
-      _loadPendingDocuments(); // Recarregar lista
-    } else {
+
+      if (!mounted) return;
+
+      if (response['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('📋 Documentos rejeitados. Usuário foi notificado.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        _loadPendingDocuments(); // Recarregar lista
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erro ao rejeitar: ${response['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao rejeitar: ${response['message']}'),
+          content: Text('❌ Erro inesperado: $e'),
           backgroundColor: Colors.red,
         ),
       );
