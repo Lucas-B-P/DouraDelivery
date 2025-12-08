@@ -220,7 +220,7 @@ class TelemetryService {
       'averageSpeed': averageSpeed,
       'currentSpeed': _lastPosition?.speed != null ? _lastPosition!.speed * 3.6 : 0.0,
       'positionCount': _positionHistory.length,
-      'lastUpdate': _lastPosition != null ? DateTime.fromMillisecondsSinceEpoch(_lastPosition!.timestamp.toInt()) : null,
+      'lastUpdate': _lastPosition != null ? DateTime.fromMillisecondsSinceEpoch(_lastPosition!.timestamp.millisecondsSinceEpoch) : null,
     };
   }
 }

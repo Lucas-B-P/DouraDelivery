@@ -428,7 +428,7 @@ class _TelemetryScreenState extends State<TelemetryScreen> {
                   itemBuilder: (context, index) {
                     final position = history[index];
                     final time = DateTime.fromMillisecondsSinceEpoch(
-                      position.timestamp.toInt(),
+                      position.timestamp.millisecondsSinceEpoch,
                     );
                     
                     return ListTile(
