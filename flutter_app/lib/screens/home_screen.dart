@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'orders/create_order_screen.dart';
 import 'orders/orders_list_screen.dart';
+import 'driver/driver_dashboard_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -23,7 +24,7 @@ class HomeScreen extends StatelessWidget {
         if (userType == 'CLIENT') {
           return OrdersListScreen();
         } else if (userType == 'DRIVER') {
-          return OrdersListScreen(); // Mesma tela, mas com dados diferentes baseado no tipo de usuário
+          return DriverDashboardScreen();
         }
         
         return Scaffold(
