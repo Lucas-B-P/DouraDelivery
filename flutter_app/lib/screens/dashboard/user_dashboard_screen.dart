@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/document_service.dart';
+import '../../services/order_service.dart';
 import '../../widgets/notification_widget.dart';
 import '../documents/document_upload_screen.dart';
+import '../orders/orders_list_screen.dart';
+import '../orders/create_order_screen.dart';
+import '../orders/order_detail_screen.dart';
 import '../login_screen.dart';
 
 class UserDashboardScreen extends StatefulWidget {
@@ -15,29 +19,46 @@ class UserDashboardScreen extends StatefulWidget {
 
 class _UserDashboardScreenState extends State<UserDashboardScreen> {
   final DocumentService _documentService = DocumentService();
+  final OrderService _orderService = OrderService();
   Map<String, dynamic>? _documentStatus;
+  List<Map<String, dynamic>> _recentOrders = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadDocumentStatus();
+    _loadDashboardData();
   }
 
-  Future<void> _loadDocumentStatus() async {
+  Future<void> _loadDashboardData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = await authProvider.authService.getUserId();
     
     if (userId != null) {
-      final status = await _documentService.getDocumentStatus(userId);
-      setState(() {
-        _documentStatus = status;
-        _isLoading = false;
-      });
+      // Carregar status dos documentos
+      final documentStatus = await _documentService.getDocumentStatus(userId);
+      
+      // Carregar pedidos recentes (últimos 5)
+      final allOrders = await _orderService.getOrdersByClient(userId);
+      final recentOrders = allOrders.take(5).toList();
+      
+      if (mounted) {
+        setState(() {
+          _documentStatus = documentStatus;
+          _recentOrders = recentOrders;
+          _isLoading = false;
+        });
+      }
     } else {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -75,7 +96,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadDocumentStatus,
+              onRefresh: _loadDashboardData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -128,6 +149,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
                     // Status da documentação
                     _buildDocumentStatusCard(),
+                    const SizedBox(height: 24),
+
+                    // Pedidos recentes
+                    _buildRecentOrdersCard(),
                     const SizedBox(height: 24),
 
                     // Ações rápidas
@@ -326,6 +351,156 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     );
   }
 
+  Widget _buildRecentOrdersCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.local_shipping, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pedidos Recentes',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OrdersListScreen(),
+                      ),
+                    ).then((_) => _loadDashboardData());
+                  },
+                  child: const Text('Ver Todos'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_recentOrders.isEmpty)
+              Column(
+                children: [
+                  Icon(
+                    Icons.inbox,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Nenhum pedido encontrado',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Que tal criar seu primeiro pedido?',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreateOrderScreen(),
+                        ),
+                      ).then((_) => _loadDashboardData());
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Criar Pedido'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: _recentOrders.map((order) {
+                  final status = order['status'] ?? 'NEW';
+                  final statusColor = _orderService.getStatusColor(status);
+                  final statusText = _orderService.getStatusText(status);
+                  
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: statusColor.withOpacity(0.2),
+                        child: Text(
+                          '#${order['id']}',
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        order['destinationAddress'] ?? 'Destino não informado',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${order['weight'] ?? 0}kg',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OrderDetailScreen(orderId: order['id']),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickActions() {
     return Card(
       child: Padding(
@@ -350,14 +525,29 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
               childAspectRatio: 1.5,
               children: [
                 _buildActionCard(
-                  title: 'Perfil',
-                  icon: Icons.person,
+                  title: 'Criar Pedido',
+                  icon: Icons.add_box,
                   color: Colors.blue,
                   onTap: () {
-                    // TODO: Implementar tela de perfil
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Em desenvolvimento')),
-                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateOrderScreen(),
+                      ),
+                    ).then((_) => _loadDashboardData());
+                  },
+                ),
+                _buildActionCard(
+                  title: 'Meus Pedidos',
+                  icon: Icons.local_shipping,
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OrdersListScreen(),
+                      ),
+                    ).then((_) => _loadDashboardData());
                   },
                 ),
                 _buildActionCard(
@@ -367,22 +557,11 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   onTap: _goToDocumentUpload,
                 ),
                 _buildActionCard(
-                  title: 'Suporte',
-                  icon: Icons.help,
-                  color: Colors.green,
+                  title: 'Perfil',
+                  icon: Icons.person,
+                  color: Colors.purple,
                   onTap: () {
-                    // TODO: Implementar tela de suporte
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Em desenvolvimento')),
-                    );
-                  },
-                ),
-                _buildActionCard(
-                  title: 'Configurações',
-                  icon: Icons.settings,
-                  color: Colors.grey,
-                  onTap: () {
-                    // TODO: Implementar tela de configurações
+                    // TODO: Implementar tela de perfil
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Em desenvolvimento')),
                     );
@@ -442,7 +621,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             userId: userId,
           ),
         ),
-      ).then((_) => _loadDocumentStatus()); // Recarregar status ao voltar
+                    ).then((_) => _loadDashboardData()); // Recarregar status ao voltar
     }
   }
 

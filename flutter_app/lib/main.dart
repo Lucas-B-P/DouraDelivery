@@ -3,11 +3,7 @@ import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/auth/simple_register_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/cliente/create_order_screen.dart';
-import 'screens/cliente/cliente_orders_screen.dart';
-import 'screens/entregador/entregador_orders_screen.dart';
 import 'providers/auth_provider.dart';
-import 'providers/order_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -19,7 +15,6 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => OrderProvider()),
       ],
       child: MaterialApp(
         title: 'DouraDelivery',
@@ -32,9 +27,6 @@ class MyApp extends StatelessWidget {
           '/login': (context) => LoginScreen(),
           '/register': (context) => SimpleRegisterScreen(),
           '/home': (context) => HomeScreen(),
-          '/cliente/create-order': (context) => CreateOrderScreen(),
-          '/cliente/orders': (context) => ClienteOrdersScreen(),
-          '/entregador/orders': (context) => EntregadorOrdersScreen(),
         },
       ),
     );

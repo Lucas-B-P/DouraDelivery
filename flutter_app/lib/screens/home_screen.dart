@@ -3,9 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'cliente/create_order_screen.dart';
-import 'cliente/cliente_orders_screen.dart';
-import 'entregador/entregador_orders_screen.dart';
+import 'orders/create_order_screen.dart';
+import 'orders/orders_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -21,10 +20,10 @@ class HomeScreen extends StatelessWidget {
         
         final userType = snapshot.data;
         
-        if (userType == 'CLIENTE') {
-          return ClienteOrdersScreen();
-        } else if (userType == 'ENTREGADOR') {
-          return EntregadorOrdersScreen();
+        if (userType == 'CLIENT') {
+          return OrdersListScreen();
+        } else if (userType == 'DRIVER') {
+          return OrdersListScreen(); // Mesma tela, mas com dados diferentes baseado no tipo de usuário
         }
         
         return Scaffold(
